@@ -135,6 +135,34 @@ public class SetOperationJpaCriteriaTest {
     @Test
     @RequiresDialectFeature(feature = DialectFeatureChecks.SupportsUnion.class)
     @RequiresDialectFeature(feature = DialectFeatureChecks.SupportsOrderByInSubquery.class)
+    public void testUnionAllLimitSubqueryWithOrderByPathExpression(SessionFactoryScope scope) {
+        scope.inSession(
+                session -> {
+                    HibernateCriteriaBuilder cb = session.getCriteriaBuilder();
+
+                    JpaCriteriaQuery<EntityOfLists> query1 = cb.createQuery( EntityOfLists.class );
+                    JpaRoot<EntityOfLists> root1 = query1.from( EntityOfLists.class );
+                    query1.where( cb.equal( root1.get( "id" ), 1 ) );
+
+                    JpaCriteriaQuery<EntityOfLists> query2 = cb.createQuery( EntityOfLists.class );
+                    JpaRoot<EntityOfLists> root2 = query2.from( EntityOfLists.class );
+                    query2.where( cb.equal( root2.get( "id" ), 2 ) );
+
+                    List<EntityOfLists> list = session.createQuery(
+                            cb.unionAll(
+                                    query1,
+                                    query2.orderBy( cb.asc( root2.get("name") ) )
+                                            .fetch( 1 )
+                            )
+                    ).list();
+                    assertThat( list.size(), is( 2 ) );
+                }
+        );
+    }
+
+    @Test
+    @RequiresDialectFeature(feature = DialectFeatureChecks.SupportsUnion.class)
+    @RequiresDialectFeature(feature = DialectFeatureChecks.SupportsOrderByInSubquery.class)
     public void testUnionAllLimitNested(SessionFactoryScope scope) {
         scope.inSession(
                 session -> {
